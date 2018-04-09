@@ -82,7 +82,7 @@
 
 # 2. 实现 Singleton
 
-> [单例模式](https://github.com/CyC2018/Interview-Notebook/blob/master/notes/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F.md)
+> [单例模式](https://github.com/CyC2018/Interview- Notebook/blob/master/notes/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F.md)
 
 # 3. 数组中重复的数字
 
@@ -296,7 +296,7 @@ public ArrayList<Integer> printListFromTailToHead(ListNode listNode) {
 
 ## 题目描述
 
-根据二叉树的前序遍历和中序遍历的结果，重建出该二叉树。
+根据二叉树的前序遍历和中序遍历的结果，重建出该二叉树。假设输入的前序遍历和中序遍历的结果中都不含重复的数字。
 
 ```html
 preorder = [3,9,20,15,7]
@@ -339,7 +339,7 @@ private TreeNode reConstructBinaryTree(int[] pre, int preL, int preR, int[] in, 
 
 ## 解题思路
 
-① 如果一个节点有右子树不为空，那么该节点的下一个节点是右子树的最左节点；
+① 如果一个节点的右子树不为空，那么该节点的下一个节点是右子树的最左节点；
 
 <div align="center"> <img src="../pics//cb0ed469-27ab-471b-a830-648b279103c8.png" width="250"/> </div><br>
 
@@ -393,11 +393,14 @@ public void push(int node) {
     in.push(node);
 }
 
-public int pop() {
+public int pop() throws Exception {
     if (out.isEmpty()) {
         while (!in.isEmpty()) {
             out.push(in.pop());
         }
+    }
+    if (out.isEmpty()) {
+        throw new Exception("queue is empty");
     }
     return out.pop();
 }
@@ -407,17 +410,47 @@ public int pop() {
 
 ## 题目描述
 
-以 O(1) 的时间复杂度求菲波那切数列。
+求菲波那契数列的第 n 项。
 
 <div align="center"><img src="https://latex.codecogs.com/gif.latex?f(n)=\left\{\begin{array}{rcl}0&&{n=0}\\1&&{n=1}\\f(n-1)+f(n-2)&&{n>1}\end{array}\right."/></div> <br>
 
 ## 解题思路
 
-如果使用递归求解，那么会重复计算一些子问题。例如，求 f(10) 需要计算 f(9) 和 f(8)，计算 f(9) 需要计算 f(8) 和 f(7)，可以看到 f(8) 被重复计算了。
+如果使用递归求解，会重复计算一些子问题。例如，计算 f(10) 需要计算 f(9) 和 f(8)，计算 f(9) 需要计算 f(8) 和 f(7)，可以看到 f(8) 被重复计算了。
 
 <div align="center"> <img src="../pics//955af054-8872-4569-82e7-2e10b66bc38e.png" width="300"/> </div><br>
 
 递归方法是将一个问题划分成多个子问题求解，动态规划也是如此，但是动态规划会把子问题的解缓存起来，避免重复求解子问题。
+
+```java
+public int Fibonacci(int n) {
+    if(n <= 1) return n;
+    int[] fib = new int[n + 1];
+    fib[1] = 1;
+    for (int i = 2; i <= n; i++) {
+        fib[i] = fib[i - 1] + fib[i - 2];
+    }
+    return fib[n];
+}
+```
+
+考虑到第 i 项只与第 i-1 和第 i-2 项有关，因此只需要存储前两项的值就能求解第 i 项，从而将空间复杂度由 O(N) 降低为 O(1)。
+
+```java
+public int Fibonacci(int n) {
+    if(n <= 1) return n;
+    int pre2 = 0, pre1 = 1;
+    int fib = 0;
+    for (int i = 2; i <= n; i++) {
+        fib = pre2 + pre1;
+        pre2 = pre1;
+        pre1 = fib;
+    }
+    return fib;
+}
+```
+
+由于待求解的 n 小于 40，因此可以将前 40 项的结果先进行计算，之后就能以 O(1) 时间复杂度得到第 n 项的值了。
 
 ```java
 public class Solution {
@@ -443,6 +476,8 @@ public class Solution {
 
 ## 解题思路
 
+复杂度：O(N) + O(N)
+
 ```java
 public int JumpFloor(int n) {
     if (n == 1) return 1;
@@ -453,6 +488,22 @@ public int JumpFloor(int n) {
         dp[i] = dp[i - 1] + dp[i - 2];
     }
     return dp[n - 1];
+}
+```
+
+复杂度：O(N) + O(1)
+
+```java
+public int JumpFloor(int n) {
+    if (n <= 1) return n;
+    int pre2 = 0, pre1 = 1;
+    int result = 0;
+    for (int i = 1; i <= n; i++) {
+        result = pre2 + pre1;
+        pre2 = pre1;
+        pre1 = result;
+    }
+    return result;
 }
 ```
 
@@ -485,9 +536,11 @@ public int JumpFloorII(int n) {
 
 ## 解题思路
 
+复杂度：O(N) + O(N)
+
 ```java
 public int RectCover(int n) {
-    if (n < 2) return n;
+    if (n <= 2) return n;
     int[] dp = new int[n];
     dp[0] = 1;
     dp[1] = 2;
@@ -495,6 +548,22 @@ public int RectCover(int n) {
         dp[i] = dp[i - 1] + dp[i - 2];
     }
     return dp[n - 1];
+}
+```
+
+复杂度：O(N) + O(1)
+
+```java
+public int RectCover(int n) {
+    if (n <= 2) return n;
+    int pre2 = 1, pre1 = 2;
+    int result = 0;
+    for (int i = 3; i <= n; i++) {
+        result = pre2 + pre1;
+        pre2 = pre1;
+        pre1 = result;
+    }
+    return result;
 }
 ```
 
