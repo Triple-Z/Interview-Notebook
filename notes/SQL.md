@@ -46,6 +46,13 @@ FROM mytable; -- 注释
    注释2 */
 ```
 
+数据库创建与使用：
+
+```sql
+CREATE DATABASE test;
+USE test;
+```
+
 # 二、创建表
 
 ```sql
@@ -120,6 +127,10 @@ WHERE id = 1;
 
 **TRUNCATE TABLE**  可以清空表，也就是删除所有行。
 
+```sql
+TRUNCATE TABLE mytable;
+```
+
 使用更新和删除操作时一定要用 WHERE 子句，不然会把整张表的数据都破坏。可以先用 SELECT 语句进行测试，防止错误删除。
 
 # 七、查询
@@ -187,16 +198,16 @@ WHERE col IS NULL;
 
 |  操作符 | 说明  |
 | ------------ | ------------ |
-| = <  >  | 等于 小于 大于 |
-| <> !=  | 不等于  |
-| <= !> | 小于等于 |
-| &gt;= !< | 大于等于 |
-| BETWEEN | 在两个值之间 |
-| IS NULL | 为NULL值 |
+| `=` `<` `>`  | 等于 小于 大于 |
+| `<>` `!=`  | 不等于  |
+| `<=` `!>` | 小于等于 |
+| `>=` `!<` | 大于等于 |
+| `BETWEEN` | 在两个值之间 |
+| `IS NULL` | 为 NULL 值 |
 
-应该注意到，NULL 与 0 、空字符串都不同。
+应该注意到，NULL 与 0、空字符串都不同。
 
-**AND OR**  用于连接多个过滤条件。优先处理 AND，因此当一个过滤表达式涉及到多个 AND 和 OR 时，应当使用 () 来决定优先级。
+**AND 和 OR**  用于连接多个过滤条件。优先处理 AND，当一个过滤表达式涉及到多个 AND 和 OR 时，可以使用 () 来决定优先级，使得优先级关系更清晰。
 
 **IN**  操作符用于匹配一组值，其后也可以接一个 SELECT 子句，从而匹配子查询得到的一组值。
 
@@ -217,8 +228,9 @@ WHERE col IS NULL;
 ```sql
 SELECT *
 FROM mytable
-WHERE col LIKE '[^AB]%' -- 不以 A 和 B 开头的任意文本
+WHERE col LIKE '[^AB]%'; -- 不以 A 和 B 开头的任意文本
 ```
+
 不要滥用通配符，通配符位于开头处匹配会非常慢。
 
 # 十一、计算字段
@@ -228,15 +240,15 @@ WHERE col LIKE '[^AB]%' -- 不以 A 和 B 开头的任意文本
 计算字段通常需要使用  **AS**  来取别名，否则输出的时候字段名为计算表达式。
 
 ```sql
-SELECT col1*col2 AS alias
-FROM mytable
+SELECT col1 * col2 AS alias
+FROM mytable;
 ```
 
 **CONCAT()**  用于连接两个字段。许多数据库会使用空格把一个值填充为列宽，因此连接的结果会出现一些不必要的空格，使用 **TRIM()** 可以去除首尾空格。
 
 ```sql
-SELECT CONCAT(TRIM(col1), ' (', TRIM(col2), ')')
-FROM mytable
+SELECT CONCAT(TRIM(col1), '(', TRIM(col2), ')') AS concat_col
+FROM mytable;
 ```
 
 # 十二、函数
@@ -246,14 +258,14 @@ FROM mytable
 ## 文本处理
 
 | 函数  | 说明  |
-| ------------ | ------------ |
-|  LEFT() RIGHT() |  左边或者右边的字符 |
-|  LOWER() UPPER() |  转换为小写或者大写 |
-| LTRIM() RTIM() | 去除左边或者右边的空格 |
-| LENGTH() | 长度 |
-| SUNDEX() | 转换为语音值 |
+| :---: | :---: |
+|  `LEFT()` `RIGHT()` |  左边或者右边的字符 |
+|  `LOWER()` `UPPER()` |  转换为小写或者大写 |
+| `LTRIM()` `RTIM()` | 去除左边或者右边的空格 |
+| `LENGTH()` | 长度 |
+| `SOUNDEX()` | 转换为语音值 |
 
-其中， **SOUNDEX()**  是将一个字符串转换为描述其语音表示的字母数字模式的算法，它是根据发音而不是字母比较。
+其中， **SOUNDEX()**  可以将一个字符串转换为描述其语音表示的字母数字模式。
 
 ```sql
 SELECT *
@@ -267,53 +279,56 @@ WHERE SOUNDEX(col1) = SOUNDEX('apple')
 - 时间格式：HH:MM:SS
 
 |函 数 | 说 明|
-| --- | --- |
-| AddDate() | 增加一个日期（天、周等）|
-| AddTime() | 增加一个时间（时、分等）|
-| CurDate() | 返回当前日期 |
-| CurTime() | 返回当前时间 |
-| Date() |返回日期时间的日期部分|
-| DateDiff() |计算两个日期之差|
-| Date_Add() |高度灵活的日期运算函数|
-| Date_Format() |返回一个格式化的日期或时间串|
-| Day()| 返回一个日期的天数部分|
-| DayOfWeek() |对于一个日期，返回对应的星期几|
-| Hour() |返回一个时间的小时部分|
-| Minute() |返回一个时间的分钟部分|
-| Month() |返回一个日期的月份部分|
-| Now() |返回当前日期和时间|
-| Second() |返回一个时间的秒部分|
-| Time() |返回一个日期时间的时间部分|
-| Year() |返回一个日期的年份部分|
+| :---: | :---: |
+| `AddDate()` | 增加一个日期（天、周等）|
+| `AddTime()` | 增加一个时间（时、分等）|
+| `CurDate()` | 返回当前日期 |
+| `CurTime()` | 返回当前时间 |
+| `Date()` |返回日期时间的日期部分|
+| `DateDiff()` |计算两个日期之差|
+| `Date_Add()` |高度灵活的日期运算函数|
+| `Date_Format()` |返回一个格式化的日期或时间串|
+| `Day()`| 返回一个日期的天数部分|
+| `DayOfWeek()` |对于一个日期，返回对应的星期几|
+| `Hour()` |返回一个时间的小时部分|
+| `Minute()` |返回一个时间的分钟部分|
+| `Month()` |返回一个日期的月份部分|
+| `Now()` |返回当前日期和时间|
+| `Second()` |返回一个时间的秒部分|
+| `Time()` |返回一个日期时间的时间部分|
+| `Year()` |返回一个日期的年份部分|
 
 ```sql
 mysql> SELECT NOW();
-        -> '2017-06-28 14:01:52'
+```
+
+```
+2018-4-14 20:25:11
 ```
 
 ## 数值处理
 
 | 函数 | 说明 |
-| --- | --- |
-| SIN() | 正弦 |
-| COS() | 余弦 |
-| TAN() | 正切 |
-| ABS() | 绝对值 |
-| SQRT() | 平方根 |
-| MOD() | 余数 |
-| EXP() | 指数 |
-| PI() | 圆周率 |
-| RAND() | 随机数 |
+| :---: | :---: |
+| `SIN()` | 正弦 |
+| `COS()` | 余弦 |
+| `TAN()` | 正切 |
+| `ABS()` | 绝对值 |
+| `SQRT()` | 平方根 |
+| `MOD()` | 余数 |
+| `EXP()` | 指数 |
+| `PI()` | 圆周率 |
+| `RAND()` | 随机数 |
 
 ## 汇总
 
 |函 数 |说 明|
-| --- | --- |
-| AVG() | 返回某列的平均值 |
-| COUNT() | 返回某列的行数 |
-| MAX() | 返回某列的最大值 |
-| MIN() | 返回某列的最小值 |
-| SUM() |返回某列值之和 |
+| :---: | :---: |
+| `AVG()` | 返回某列的平均值 |
+| `COUNT()` | 返回某列的行数 |
+| `MAX()` | 返回某列的最大值 |
+| `MIN()` | 返回某列的最小值 |
+| `SUM()` |返回某列值之和 |
 
 AVG() 会忽略 NULL 行。
 
@@ -330,7 +345,7 @@ FROM mytable
 
 可以对同一分组数据使用汇总函数进行处理，例如求分组数据的平均值等。
 
-指定的分组字段除了能按该字段进行分组，也可以按该字段进行排序，例如按 col 字段排序并分组数据：
+指定的分组字段除了能按该字段进行分组，也会自动按该字段进行排序。
 
 ```sql
 SELECT col, COUNT(*) AS num
@@ -338,7 +353,7 @@ FROM mytable
 GROUP BY col;
 ```
 
-GROUP BY 是按照分组字段进行排序，ORDER BY 也可以以汇总字段来进行排序。
+GROUP BY 自动按分组字段进行排序，ORDER BY 也可以按汇总字段来进行排序。
 
 ```sql
 SELECT col, COUNT(*) AS num
@@ -347,14 +362,14 @@ GROUP BY col
 ORDER BY num;
 ```
 
-WHERE 过滤行，HAVING 过滤分组。行过滤应当先与分组过滤；
+WHERE 过滤行，HAVING 过滤分组，行过滤应当先于分组过滤。
 
 ```sql
 SELECT col, COUNT(*) AS num
 FROM mytable
 WHERE col > 2
 GROUP BY col
-HAVING COUNT(*) >= 2;
+HAVING num >= 2;
 ```
 
 分组规定：
@@ -401,17 +416,17 @@ ORDER BY cust_name;
 内连接又称等值连接，使用 INNER JOIN 关键字。
 
 ```sql
-select a, b, c
-from A inner join B
-on A.key = B.key
+SELECT a, b, c
+FROM A INNER JOIN B
+ON A.key = B.key;
 ```
 
 可以不明确使用 INNER JOIN，而使用普通查询并在 WHERE 中将两个表中要连接的列用等值方法连接起来。
 
 ```sql
-select a, b, c
-from A, B
-where A.key = B.key
+SELECT a, b, c
+FROM A, B
+WHERE A.key = B.key;
 ```
 
 在没有条件语句的情况下返回笛卡尔积。
@@ -425,21 +440,21 @@ where A.key = B.key
 子查询版本
 
 ```sql
-select name
-from employee
-where department = (
-      select department
-      from employee
-      where name = "Jim");
+SELECT name
+FROM employee
+WHERE department = (
+      SELECT department
+      FROM employee
+      WHERE name = "Jim");
 ```
 
 自连接版本
 
 ```sql
-select e2.name
-from employee as e1, employee as e2
-where e1.department = e2.department
-      and e1.name = "Jim";
+SELECT e1.name
+FROM employee AS e1, employee AS e2
+WHERE e1.department = e2.department
+      AND e2.name = "Jim";
 ```
 
 连接一般比子查询的效率高。
@@ -451,8 +466,8 @@ where e1.department = e2.department
 内连接和自然连接的区别：内连接提供连接的列，而自然连接自动连接所有同名列。
 
 ```sql
-select *
-from employee natural join department;
+SELECT *
+FROM employee NATURAL JOIN department;
 ```
 
 ## 外连接
@@ -462,26 +477,26 @@ from employee natural join department;
 检索所有顾客的订单信息，包括还没有订单信息的顾客。
 
 ```sql
-select Customers.cust_id, Orders.order_num
-from Customers left outer join Orders
-on Customers.cust_id = Orders.curt_id;
+SELECT Customers.cust_id, Orders.order_num
+FROM Customers LEFT OUTER JOIN Orders
+ON Customers.cust_id = Orders.cust_id;
 ```
 
 如果需要统计顾客的订单数，使用聚集函数。
 
 ```sql
-select Customers.cust_id,
-       COUNT(Orders.order_num) as num_ord
-from Customers left outer join Orders
-on Customers.cust_id = Orders.curt_id
-group by Customers.cust_id;
+SELECT Customers.cust_id,
+       COUNT(Orders.order_num) AS num_ord
+FROM Customers LEFT OUTER JOIN Orders
+ON Customers.cust_id = Orders.cust_id
+GROUP BY Customers.cust_id;
 ```
 
 # 十六、组合查询
 
-使用  **UNION**  来组合两个查询，如果第一个查询返回 M 行，第二个查询返回 N 行，那么组合查询的结果为 M+N 行。
+使用  **UNION**  来组合两个查询，如果第一个查询返回 M 行，第二个查询返回 N 行，那么组合查询的结果一般为 M+N 行。
 
-每个查询必须包含相同的列、表达式或者聚集函数。
+每个查询必须包含相同的列、表达式和聚集函数。
 
 默认会去除相同行，如果需要保留相同行，使用 UNION ALL。
 
@@ -499,18 +514,20 @@ WHERE col =2;
 
 # 十七、视图
 
-视图是虚拟的表，本身不包含数据，也就不能对其进行索引操作。对视图的操作和对普通表的操作一样。
+视图是虚拟的表，本身不包含数据，也就不能对其进行索引操作。
+
+对视图的操作和对普通表的操作一样。
 
 视图具有如下好处：
 
-1. 简化复杂的 SQL 操作，比如复杂的联结；
+1. 简化复杂的 SQL 操作，比如复杂的连接；
 2. 只使用实际表的一部分数据；
 3. 通过只给用户访问视图的权限，保证数据的安全性；
 4. 更改数据格式和表示。
 
 ```sql
 CREATE VIEW myview AS
-SELECT Concat(col1, col2) AS concat_col, col3*col4 AS count_col
+SELECT Concat(col1, col2) AS concat_col, col3*col4 AS compute_col
 FROM mytable
 WHERE col5 = val;
 ```
@@ -519,13 +536,11 @@ WHERE col5 = val;
 
 存储过程可以看成是对一系列 SQL 操作的批处理；
 
-## 使用存储过程的好处
+使用存储过程的好处
 
 1. 代码封装，保证了一定的安全性；
 2. 代码复用；
 3. 由于是预先编译，因此具有很高的性能。
-
-## 创建存储过程
 
 命令行中创建存储过程需要自定义分隔符，因为命令行是以 ; 为结束符，而存储过程中也包含了分号，因此会错误把这部分分号当成是结束符，造成语法错误。
 
@@ -575,7 +590,7 @@ create procedure myprocedure(out ret int)
 
         declare mycursor cursor for
         select col1 from mytable;
-        # 定义了一个continue handler，当 sqlstate '02000' 这个条件出现时，会执行 set done = 1
+        # 定义了一个 continue handler，当 sqlstate '02000' 这个条件出现时，会执行 set done = 1
         declare continue handler for sqlstate '02000' set done = 1;
 
         open mycursor;
@@ -592,7 +607,7 @@ create procedure myprocedure(out ret int)
 
 # 二十、触发器
 
-触发器会在某个表执行以下语句时而自动执行：DELETE、INSERT、UPDATE
+触发器会在某个表执行以下语句时而自动执行：DELETE、INSERT、UPDATE。
 
 触发器必须指定在语句执行之前还是之后自动执行，之前执行使用 BEFORE 关键字，之后执行使用 AFTER 关键字。BEFORE 用于数据验证和净化。
 
@@ -600,7 +615,9 @@ INSERT 触发器包含一个名为 NEW 的虚拟表。
 
 ```sql
 CREATE TRIGGER mytrigger AFTER INSERT ON mytable
-FOR EACH ROW SELECT NEW.col;
+FOR EACH ROW SELECT NEW.col into @result;
+
+SELECT @result; -- 获取结果
 ```
 
 DELETE 触发器包含一个名为 OLD 的虚拟表，并且是只读的。
@@ -609,7 +626,7 @@ UPDATE 触发器包含一个名为 NEW 和一个名为 OLD 的虚拟表，其中
 
 可以使用触发器来进行审计跟踪，把修改记录到另外一张表中。
 
-MySQL 不允许在触发器中使用 CALL 语句 ，也就是不能调用存储过程。
+MySQL 不允许在触发器中使用 CALL 语句，也就是不能调用存储过程。
 
 # 二十一、事务处理
 
@@ -622,7 +639,7 @@ MySQL 不允许在触发器中使用 CALL 语句 ，也就是不能调用存储�
 
 不能回退 SELECT 语句，回退 SELECT 语句也没意义；也不能回退 CREATE 和 DROP 语句。
 
-MySQL 的事务提交默认是隐式提交，也就是每执行一条语句就把这条语句当成一个事务然后进行提交。当出现 START TRANSACTION 语句时，会关闭隐式提交；当 COMMIT 或 ROLLBACK 语句执行后，事务会自动关闭，重新恢复隐式提交。
+MySQL 的事务提交默认是隐式提交，每执行一条语句就把这条语句当成一个事务然后进行提交。当出现 START TRANSACTION 语句时，会关闭隐式提交；当 COMMIT 或 ROLLBACK 语句执行后，事务会自动关闭，重新恢复隐式提交。
 
 通过设置 autocommit 为 0 可以取消自动提交，直到 autocommit 被设置为 1 才会提交；autocommit 标记是针对每个连接而不是针对服务器的。
 
@@ -671,7 +688,7 @@ USE mysql;
 SELECT user FROM user;
 ```
 
-## 创建账户
+**创建账户** 
 
 ```sql
 CREATE USER myuser IDENTIFIED BY 'mypassword';
@@ -679,25 +696,25 @@ CREATE USER myuser IDENTIFIED BY 'mypassword';
 
 新创建的账户没有任何权限。
 
-## 修改账户名
+**修改账户名** 
 
 ```sql
 RENAME myuser TO newuser;
 ```
 
-## 删除账户
+**删除账户** 
 
 ```sql
 DROP USER myuser;
 ```
 
-## 查看权限
+**查看权限** 
 
 ```sql
 SHOW GRANTS FOR myuser;
 ```
 
-## 授予权限
+**授予权限** 
 
 ```sql
 GRANT SELECT, INSERT ON mydatabase.* TO myuser;
@@ -705,7 +722,7 @@ GRANT SELECT, INSERT ON mydatabase.* TO myuser;
 
 账户用 username@host 的形式定义，username@% 使用的是默认主机名。
 
-## 删除权限
+**删除权限** 
 
 ```sql
 REVOKE SELECT, INSERT ON mydatabase.* FROM myuser;
@@ -719,12 +736,12 @@ GRANT 和 REVOKE 可在几个层次上控制访问权限：
 - 特定的列；
 - 特定的存储过程。
 
-## 更改密码
+**更改密码** 
 
 必须使用 Password() 函数
 
 ```sql
-SET PASSWROD FOR myuser = Password('newpassword');
+SET PASSWROD FOR myuser = Password('new_password');
 ```
 
 # 参考资料

@@ -43,10 +43,11 @@
     * [内存模型三大特性](#内存模型三大特性)
     * [先行发生原则](#先行发生原则)
 * [十一、线程安全](#十一线程安全)
+    * [线程安全定义](#线程安全定义)
     * [线程安全分类](#线程安全分类)
     * [线程安全的实现方法](#线程安全的实现方法)
 * [十二、锁优化](#十二锁优化)
-    * [自旋锁与自适应自旋](#自旋锁与自适应自旋)
+    * [自旋锁](#自旋锁)
     * [锁消除](#锁消除)
     * [锁粗化](#锁粗化)
     * [轻量级锁](#轻量级锁)
@@ -58,7 +59,7 @@
 
 # 一、线程状态转换
 
-<div align="center"> <img src="../pics//ace830df-9919-48ca-91b5-60b193f593d2.png"/> </div><br>
+<div align="center"> <img src="../pics//ace830df-9919-48ca-91b5-60b193f593d2.png" width=""/> </div><br>
 
 ## 新建（New）
 
@@ -86,11 +87,15 @@
 
 ## 限期等待（Timed Waiting）
 
-无需等待其它线程显示地唤醒，在一定时间之后会被系统自动唤醒。
+无需等待其它线程显式地唤醒，在一定时间之后会被系统自动唤醒。
 
 调用 Thread.sleep() 方法使线程进入限期等待状态时，常常用“使一个线程睡眠”进行描述。
 
 调用 Object.wait() 方法使线程进入限期等待或者无限期等待时，常常用“挂起一个线程”进行描述。
+
+睡眠和挂起是用来描述行为，而阻塞和等待用来描述状态。
+
+阻塞和等待的区别在于，阻塞是被动的，它是在等待获取一个排它锁；而等待是主动的，通过调用 Thread.sleep() 和 Object.wait() 等方法进入。
 
 | 进入方法 | 退出方法 |
 | --- | --- |
@@ -108,9 +113,9 @@
 
 有三种使用线程的方法：
 
-1. 实现 Runnable 接口；
-2. 实现 Callable 接口；
-3. 继承 Thread 类。
+- 实现 Runnable 接口；
+- 实现 Callable 接口；
+- 继承 Thread 类。
 
 实现 Runnable 和 Callable 接口的类只能当做一个可以在线程中运行的任务，不是真正意义上的线程，因此最后还需要通过 Thread 来调用。可以说任务是通过线程驱动从而执行的。
 
@@ -181,20 +186,20 @@ public static void main(String[] args) {
 
 实现接口会更好一些，因为：
 
-1. Java 不支持多重继承，因此继承了 Thread 类就无法继承其它类，但是可以实现多个接口；
-2. 类可能只要求可执行就行，继承整个 Thread 类开销会过大。
+- Java 不支持多重继承，因此继承了 Thread 类就无法继承其它类，但是可以实现多个接口；
+- 类可能只要求可执行就行，继承整个 Thread 类开销过大。
 
 # 三、基础线程机制
 
 ## Executor
 
-Executor 管理多个异步任务的执行，而无需程序员显示地管理线程的生命周期。
+Executor 管理多个异步任务的执行，而无需程序员显式地管理线程的生命周期。
 
 主要有三种 Executor：
 
-1. CachedTreadPool：一个任务创建一个线程；
-2. FixedThreadPool：所有任务只能使用固定大小的线程；
-3. SingleThreadExecutor：相当于大小为 1 的 FixedThreadPool。
+- CachedThreadPool：一个任务创建一个线程；
+- FixedThreadPool：所有任务只能使用固定大小的线程；
+- SingleThreadExecutor：相当于大小为 1 的 FixedThreadPool。
 
 ```java
 public static void main(String[] args) {
@@ -257,16 +262,10 @@ public void run() {
 
 通过调用一个线程的 interrupt() 来中断该线程，如果该线程处于阻塞、限期等待或者无限期等待状态，那么就会抛出 InterruptedException，从而提前结束该线程。但是不能中断 I/O 阻塞和 synchronized 锁阻塞。
 
-对于以下代码，在 Main 中启动一个线程之后再中断它，由于线程中调用了 Thread.sleep() 方法，因此会抛出一个 InterruptedException，从而提前结束线程，不执行之后的语句。
+对于以下代码，在 main() 中启动一个线程之后再中断它，由于线程中调用了 Thread.sleep() 方法，因此会抛出一个 InterruptedException，从而提前结束线程，不执行之后的语句。
 
 ```java
 public class InterruptExample {
-    public static void main(String[] args) throws InterruptedException {
-        Thread thread1 = new MyThread1();
-        thread1.start();
-        thread1.interrupt();
-        System.out.println("Main run");
-    }
 
     private static class MyThread1 extends Thread {
         @Override
@@ -280,7 +279,15 @@ public class InterruptExample {
         }
     }
 }
+```
 
+```java
+public static void main(String[] args) throws InterruptedException {
+    Thread thread1 = new MyThread1();
+    thread1.start();
+    thread1.interrupt();
+    System.out.println("Main run");
+}
 ```
 
 ```html
@@ -300,11 +307,6 @@ java.lang.InterruptedException: sleep interrupted
 
 ```java
 public class InterruptExample {
-    public static void main(String[] args) throws InterruptedException {
-        Thread thread2 = new MyThread2();
-        thread2.start();
-        thread2.interrupt();
-    }
 
     private static class MyThread2 extends Thread {
         @Override
@@ -315,6 +317,14 @@ public class InterruptExample {
             System.out.println("Thread end");
         }
     }
+}
+```
+
+```java
+public static void main(String[] args) throws InterruptedException {
+    Thread thread2 = new MyThread2();
+    thread2.start();
+    thread2.interrupt();
 }
 ```
 
@@ -329,20 +339,18 @@ Thread end
 以下使用 Lambda 创建线程，相当于创建了一个匿名内部线程。
 
 ```java
-public class ExecutorInterruptExample {
-    public static void main(String[] args) {
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        executorService.execute(() -> {
-            try {
-                Thread.sleep(2000);
-                System.out.println("Thread run");
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
-        executorService.shutdownNow();
-        System.out.println("Main run");
-    }
+public static void main(String[] args) {
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    executorService.execute(() -> {
+        try {
+            Thread.sleep(2000);
+            System.out.println("Thread run");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    });
+    executorService.shutdownNow();
+    System.out.println("Main run");
 }
 ```
 
@@ -384,7 +392,7 @@ public void func () {
 
 它只作用于同一个对象，如果调用两个对象上的同步代码块，就不会进行同步。
 
-对于以下代码，使用 ExecutorService 执行了两个线程（这两个线程使用 Lambda 创建），由于调用的是同一个对象的同步语句块，因此这两个线程就需要进行同步，当一个线程进入同步语句块时，另一个线程就必须等待。
+对于以下代码，使用 ExecutorService 执行了两个线程（这两个线程使用 Lambda 创建），由于调用的是同一个对象的同步代码块，因此这两个线程会进行同步，当一个线程进入同步语句块时，另一个线程就必须等待。
 
 ```java
 public class SynchronizedExample {
@@ -396,13 +404,15 @@ public class SynchronizedExample {
             }
         }
     }
+}
+```
 
-    public static void main(String[] args) {
-        SynchronizedExample e1 = new SynchronizedExample();
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        executorService.execute(() -> e1.func1());
-        executorService.execute(() -> e1.func1());
-    }
+```java
+public static void main(String[] args) {
+    SynchronizedExample e1 = new SynchronizedExample();
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    executorService.execute(() -> e1.func1());
+    executorService.execute(() -> e1.func1());
 }
 ```
 
@@ -459,14 +469,16 @@ public class SynchronizedExample {
             }
         }
     }
+}
+```
 
-    public static void main(String[] args) {
-        SynchronizedExample e1 = new SynchronizedExample();
-        SynchronizedExample e2 = new SynchronizedExample();
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        executorService.execute(() -> e1.func2());
-        executorService.execute(() -> e2.func2());
-    }
+```java
+public static void main(String[] args) {
+    SynchronizedExample e1 = new SynchronizedExample();
+    SynchronizedExample e2 = new SynchronizedExample();
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    executorService.execute(() -> e1.func2());
+    executorService.execute(() -> e2.func2());
 }
 ```
 
@@ -517,7 +529,7 @@ public static void main(String[] args) {
 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9
 ```
 
-ReentrantLock 是 java.util.concurrent（J.U.C）包中的锁，相比于 synchronized，它多了一些高级功能：
+ReentrantLock 是 java.util.concurrent（J.U.C）包中的锁，相比于 synchronized，它多了以下高级功能：
 
 **1. 等待可中断** 
 
@@ -539,7 +551,7 @@ synchronized 是 JVM 实现的，而 ReentrantLock 是 JDK 实现的。
 
 **2. 性能** 
 
-从性能上来看，在新版本的 JDK 中对 synchronized 进行了很多优化，例如自旋锁等。目前来看它和 ReentrantLock 的性能基本持平了，因此性能因素不再是选择 ReentrantLock 的理由，而且 synchronized 有更大的优化空间，因此优先考虑 synchronized。
+从性能上来看，新版本 Java 对 synchronized 进行了很多优化，例如自旋锁等。目前来看它和 ReentrantLock 的性能基本持平了，因此性能因素不再是选择 ReentrantLock 的理由。synchronized 有更大的性能优化空间，应该优先考虑 synchronized。
 
 **3. 功能** 
 
@@ -555,7 +567,7 @@ ReentrantLock 多了一些高级功能。
 
 ## join()
 
-在线程中调用另一个线程的 join() 方法，会将当前线程挂起，而不是忙等待，直到目标线程结束。
+在线程中调用另一个线程的 join() 方法，会将当前线程挂起，而不是忙等待， 直到目标线程结束。
 
 对于以下代码，虽然 b 线程先启动，但是因为在 b 线程中调用了 a 线程的 join() 方法，因此 b 线程会等待 a 线程结束才继续执行，因此最后能够保证 a 线程的输出先与 b 线程的输出。
 
@@ -594,11 +606,13 @@ public class JoinExample {
         b.start();
         a.start();
     }
+}
+```
 
-    public static void main(String[] args) {
-        JoinExample example = new JoinExample();
-        example.test();
-    }
+```java
+public static void main(String[] args) {
+    JoinExample example = new JoinExample();
+    example.test();
 }
 ```
 
@@ -632,13 +646,15 @@ public class WaitNotifyExample {
         }
         System.out.println("after");
     }
+}
+```
 
-    public static void main(String[] args) {
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        WaitNotifyExample example = new WaitNotifyExample();
-        executorService.execute(() -> example.after());
-        executorService.execute(() -> example.before());
-    }
+```java
+public static void main(String[] args) {
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    WaitNotifyExample example = new WaitNotifyExample();
+    executorService.execute(() -> example.after());
+    executorService.execute(() -> example.before());
 }
 ```
 
@@ -684,13 +700,15 @@ public class AwaitSignalExample {
             lock.unlock();
         }
     }
+}
+```
 
-    public static void main(String[] args) {
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        AwaitSignalExample example = new AwaitSignalExample();
-        executorService.execute(() -> example.after());
-        executorService.execute(() -> example.before());
-    }
+```java
+public static void main(String[] args) {
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    AwaitSignalExample example = new AwaitSignalExample();
+    executorService.execute(() -> example.after());
+    executorService.execute(() -> example.before());
 }
 ```
 
@@ -709,16 +727,16 @@ java.util.concurrent（J.U.C）大大提高了并发性能，AQS 被认为是 J.
 
 维护了一个计数器 cnt，每次调用 countDown() 方法会让计数器的值减 1，减到 0 的时候，那些因为调用 await() 方法而在等待的线程就会被唤醒。
 
-<div align="center"> <img src="../pics//CountdownLatch.png"/> </div><br>
+<div align="center"> <img src="../pics//CountdownLatch.png" width=""/> </div><br>
 
 ```java
 public class CountdownLatchExample {
 
     public static void main(String[] args) throws InterruptedException {
-        final int totalTread = 10;
-        CountDownLatch countDownLatch = new CountDownLatch(totalTread);
+        final int totalThread = 10;
+        CountDownLatch countDownLatch = new CountDownLatch(totalThread);
         ExecutorService executorService = Executors.newCachedThreadPool();
-        for (int i = 0; i < totalTread; i++) {
+        for (int i = 0; i < totalThread; i++) {
             executorService.execute(() -> {
                 System.out.print("run..");
                 countDownLatch.countDown();
@@ -743,16 +761,15 @@ run..run..run..run..run..run..run..run..run..run..end
 
 下图应该从下往上看才正确。
 
-<div align="center"> <img src="../pics//CyclicBarrier.png"/> </div><br>
+<div align="center"> <img src="../pics//CyclicBarrier.png" width=""/> </div><br>
 
 ```java
 public class CyclicBarrierExample {
-
     public static void main(String[] args) throws InterruptedException {
-        final int totalTread = 10;
-        CyclicBarrier cyclicBarrier = new CyclicBarrier(totalTread);
+        final int totalThread = 10;
+        CyclicBarrier cyclicBarrier = new CyclicBarrier(totalThread);
         ExecutorService executorService = Executors.newCachedThreadPool();
-        for (int i = 0; i < totalTread; i++) {
+        for (int i = 0; i < totalThread; i++) {
             executorService.execute(() -> {
                 System.out.print("before..");
                 try {
@@ -778,7 +795,7 @@ before..before..before..before..before..before..before..before..before..before..
 
 Semaphore 就是操作系统中的信号量，可以控制对互斥资源的访问线程数。
 
-<div align="center"> <img src="../pics//Semaphore.png"/> </div><br>
+<div align="center"> <img src="../pics//Semaphore.png" width=""/> </div><br>
 
 以下代码模拟了对某个服务的并发请求，每次只能有 3 个客户端同时访问，请求总数为 10。
 
@@ -794,9 +811,10 @@ public class SemaphoreExample {
                 try {
                     semaphore.acquire();
                     System.out.print(semaphore.availablePermits() + " ");
-                    semaphore.release();
                 } catch (InterruptedException e) {
                     e.printStackTrace();
+                } finally {
+                    semaphore.release();
                 }
             });
         }
@@ -874,9 +892,6 @@ java.util.concurrent.BlockingQueue 接口有以下阻塞队列的实现：
 **使用 BlockingQueue 实现生产者消费者问题** 
 
 ```java
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-
 public class ProducerConsumer {
 
     private static BlockingQueue<String> queue = new ArrayBlockingQueue<>(5);
@@ -905,20 +920,22 @@ public class ProducerConsumer {
             System.out.print("consume..");
         }
     }
+}
+```
 
-    public static void main(String[] args) {
-        for (int i = 0; i < 2; i++) {
-            Producer producer = new Producer();
-            producer.start();
-        }
-        for (int i = 0; i < 5; i++) {
-            Consumer consumer = new Consumer();
-            consumer.start();
-        }
-        for (int i = 0; i < 3; i++) {
-            Producer producer = new Producer();
-            producer.start();
-        }
+```java
+public static void main(String[] args) {
+    for (int i = 0; i < 2; i++) {
+        Producer producer = new Producer();
+        producer.start();
+    }
+    for (int i = 0; i < 5; i++) {
+        Consumer consumer = new Consumer();
+        consumer.start();
+    }
+    for (int i = 0; i < 3; i++) {
+        Producer producer = new Producer();
+        producer.start();
     }
 }
 ```
@@ -981,7 +998,7 @@ public class ForkJoinPool extends AbstractExecutorService
 
 ForkJoinPool 实现了工作窃取算法来提高 CPU 的利用率。每个线程都维护了一个双端队列，用来存储需要执行的任务。工作窃取算法允许空闲的线程从其它线程的双端队列中窃取一个任务来执行。窃取的任务必须是最晚的任务，避免和队列所属线程发生竞争。例如下图中，Thread2 从 Thread1 的队列中拿出最晚的 Task1 任务，Thread1 会拿出 Task2 来执行，这样就避免发生竞争。但是如果队列中只有一个任务时还是会发生竞争。
 
-<div align="center"> <img src="../pics//15b45dc6-27aa-4519-9194-f4acfa2b077f.jpg"/> </div><br>
+<div align="center"> <img src="../pics//15b45dc6-27aa-4519-9194-f4acfa2b077f.jpg" width=""/> </div><br>
 
 # 九、线程不安全示例
 
@@ -1001,22 +1018,24 @@ public class ThreadUnsafeExample {
     public int get() {
         return cnt;
     }
+}
+```
 
-    public static void main(String[] args) throws InterruptedException {
-        final int threadSize = 1000;
-        ThreadUnsafeExample example = new ThreadUnsafeExample();
-        final CountDownLatch countDownLatch = new CountDownLatch(threadSize);
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        for (int i = 0; i < threadSize; i++) {
-            executorService.execute(() -> {
-                example.add();
-                countDownLatch.countDown();
-            });
-        }
-        countDownLatch.await();
-        executorService.shutdown();
-        System.out.println(example.get());
+```java
+public static void main(String[] args) throws InterruptedException {
+    final int threadSize = 1000;
+    ThreadUnsafeExample example = new ThreadUnsafeExample();
+    final CountDownLatch countDownLatch = new CountDownLatch(threadSize);
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    for (int i = 0; i < threadSize; i++) {
+        executorService.execute(() -> {
+            example.add();
+            countDownLatch.countDown();
+        });
     }
+    countDownLatch.await();
+    executorService.shutdown();
+    System.out.println(example.get());
 }
 ```
 
@@ -1026,27 +1045,27 @@ public class ThreadUnsafeExample {
 
 # 十、Java 内存模型
 
-Java 内存模型视图屏蔽各种硬件和操作系统的内存访问差异，以实现让 Java 程序在各种平台下都能达到一致的内存访问效果。
+Java 内存模型试图屏蔽各种硬件和操作系统的内存访问差异，以实现让 Java 程序在各种平台下都能达到一致的内存访问效果。
 
 ## 主内存与工作内存
 
 处理器上的寄存器的读写的速度比内存快几个数量级，为了解决这种速度矛盾，在它们之间加入了高速缓存。
 
-加入高速缓存带来了一个新的问题：缓存一致性。如果多个缓存共享同一块主内存区域，那么多个缓存的数据可能会不一致。CPU 使用一致性协议来解决一致性问题。
+加入高速缓存带来了一个新的问题：缓存一致性。如果多个缓存共享同一块主内存区域，那么多个缓存的数据可能会不一致，需要一些协议来解决这个问题。
 
-<div align="center"> <img src="../pics//68778c1b-15ab-4826-99c0-3b4fd38cb9e9.png"/> </div><br>
+<div align="center"> <img src="../pics//68778c1b-15ab-4826-99c0-3b4fd38cb9e9.png" width=""/> </div><br>
 
 所有的变量都存储在主内存中，每个线程还有自己的工作内存，工作内存存储在高速缓存或者寄存器中，保存了该线程使用的变量的主内存副本拷贝。
 
 线程只能直接操作工作内存中的变量，不同线程之间的变量值传递需要通过主内存来完成。
 
-<div align="center"> <img src="../pics//47358f87-bc4c-496f-9a90-8d696de94cee.png"/> </div><br>
+<div align="center"> <img src="../pics//47358f87-bc4c-496f-9a90-8d696de94cee.png" width=""/> </div><br>
 
 ## 内存间交互操作
 
 Java 内存模型定义了 8 个操作来完成主内存和工作内存的交互操作。
 
-<div align="center"> <img src="../pics//536c6dfd-305a-4b95-b12c-28ca5e8aa043.png"/> </div><br>
+<div align="center"> <img src="../pics//536c6dfd-305a-4b95-b12c-28ca5e8aa043.png" width=""/> </div><br>
 
 - read：把一个变量的值从主内存传输到工作内存中
 - load：在 read 之后执行，把 read 得到的值放入工作内存的变量副本中
@@ -1069,11 +1088,11 @@ Java 内存模型保证了 read、load、use、assign、store、write、lock 和
 
 下图演示了两个线程同时对 cnt 变量进行操作，load、assign、store 这一系列操作整体上看不具备原子性，那么在 T1 修改 cnt 并且还没有将修改后的值写入主内存，T2 依然可以读入该变量的值。可以看出，这两个线程虽然执行了两次自增运算，但是主内存中 cnt 的值最后为 1 而不是 2。因此对 int 类型读写操作满足原子性只是说明 load、assign、store 这些单个操作具备原子性。
 
-<div align="center"> <img src="../pics//ef8eab00-1d5e-4d99-a7c2-d6d68ea7fe92.png"/> </div><br>
+<div align="center"> <img src="../pics//ef8eab00-1d5e-4d99-a7c2-d6d68ea7fe92.png" width=""/> </div><br>
 
 AtomicInteger 能保证多个线程修改的原子性。
 
-<div align="center"> <img src="../pics//952afa9a-458b-44ce-bba9-463e60162945.png"/> </div><br>
+<div align="center"> <img src="../pics//952afa9a-458b-44ce-bba9-463e60162945.png" width=""/> </div><br>
 
 使用 AtomicInteger 重写之前线程不安全的代码之后得到以下线程安全实现：
 
@@ -1088,24 +1107,25 @@ public class AtomicExample {
     public int get() {
         return cnt.get();
     }
-
-    public static void main(String[] args) throws InterruptedException {
-        final int threadSize = 1000;
-        AtomicExample example = new AtomicExample();
-        final CountDownLatch countDownLatch = new CountDownLatch(threadSize);
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        for (int i = 0; i < threadSize; i++) {
-            executorService.execute(() -> {
-                example.add();
-                countDownLatch.countDown();
-            });
-        }
-        countDownLatch.await();
-        executorService.shutdown();
-        System.out.println(example.get());
-    }
 }
+```
 
+```java
+public static void main(String[] args) throws InterruptedException {
+    final int threadSize = 1000;
+    AtomicExample example = new AtomicExample(); // 只修改这条语句
+    final CountDownLatch countDownLatch = new CountDownLatch(threadSize);
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    for (int i = 0; i < threadSize; i++) {
+        executorService.execute(() -> {
+            example.add();
+            countDownLatch.countDown();
+        });
+    }
+    countDownLatch.await();
+    executorService.shutdown();
+    System.out.println(example.get());
+}
 ```
 
 ```html
@@ -1125,22 +1145,24 @@ public class AtomicSynchronizedExample {
     public synchronized int get() {
         return cnt;
     }
+}
+```
 
-    public static void main(String[] args) throws InterruptedException {
-        final int threadSize = 1000;
-        AtomicSynchronizedExample example = new AtomicSynchronizedExample();
-        final CountDownLatch countDownLatch = new CountDownLatch(threadSize);
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        for (int i = 0; i < threadSize; i++) {
-            executorService.execute(() -> {
-                example.add();
-                countDownLatch.countDown();
-            });
-        }
-        countDownLatch.await();
-        executorService.shutdown();
-        System.out.println(example.get());
+```java
+public static void main(String[] args) throws InterruptedException {
+    final int threadSize = 1000;
+    AtomicSynchronizedExample example = new AtomicSynchronizedExample();
+    final CountDownLatch countDownLatch = new CountDownLatch(threadSize);
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    for (int i = 0; i < threadSize; i++) {
+        executorService.execute(() -> {
+            example.add();
+            countDownLatch.countDown();
+        });
     }
+    countDownLatch.await();
+    executorService.shutdown();
+    System.out.println(example.get());
 }
 ```
 
@@ -1152,11 +1174,9 @@ public class AtomicSynchronizedExample {
 
 可见性指当一个线程修改了共享变量的值，其它线程能够立即得知这个修改。Java 内存模型是通过在变量修改后将新值同步回主内存，在变量读取前从主内存刷新变量值来实现可见性的。
 
-volatile 可保证可见性。synchronized 也能够保证可见性，对一个变量执行 unlock 操作之前，必须把变量值同步回主内存。final 关键字也能保证可见性：被 final 关键字修饰的字段在构造器中一旦初始化完成，并且没有发生 this 逃逸（其它线程可以通过 this 引用访问到初始化了一般的对象），那么其它线程就能看见 final 字段的值。
+volatile 可保证可见性。synchronized 也能够保证可见性，对一个变量执行 unlock 操作之前，必须把变量值同步回主内存。final 关键字也能保证可见性：被 final 关键字修饰的字段在构造器中一旦初始化完成，并且没有发生 this 逃逸（其它线程可以通过 this 引用访问到初始化了一半的对象），那么其它线程就能看见 final 字段的值。
 
-对前面的线程不安全示例中的 cnt 变量用 volatile 修饰，不能解决线程不安全问题。因为 volatile 并不能保证操作的原子性。
-
-// TODO：volatile 不能解决线程不安全问题的示例代码。
+对前面的线程不安全示例中的 cnt 变量用 volatile 修饰，不能解决线程不安全问题，因为 volatile 并不能保证操作的原子性。
 
 ### 3. 有序性
 
@@ -1180,7 +1200,7 @@ volatile 关键字通过添加内存屏障的方式来禁止指令重排，即�
 
 在一个线程内，在程序前面的操作先行发生于后面的操作。
 
-<div align="center"> <img src="../pics//single-thread-rule.png"/> </div><br>
+<div align="center"> <img src="../pics//single-thread-rule.png" width=""/> </div><br>
 
 ### 2. 管程锁定规则
 
@@ -1188,7 +1208,7 @@ volatile 关键字通过添加内存屏障的方式来禁止指令重排，即�
 
 一个 unlock 操作先行发生于后面对同一个锁的 lock 操作。
 
-<div align="center"> <img src="../pics//monitor-lock-rule.png"/> </div><br>
+<div align="center"> <img src="../pics//monitor-lock-rule.png" width=""/> </div><br>
 
 ### 3. volatile 变量规则
 
@@ -1196,15 +1216,15 @@ volatile 关键字通过添加内存屏障的方式来禁止指令重排，即�
 
 对一个 volatile 变量的写操作先行发生于后面对这个变量的读操作。
 
-<div align="center"> <img src="../pics//volatile-variable-rule.png"/> </div><br>
+<div align="center"> <img src="../pics//volatile-variable-rule.png" width=""/> </div><br>
 
 ### 4. 线程启动规则
 
 > Thread Start Rule
 
-Thread 对象的 start() 方法先行发生于此线程的每一个动作。
+Thread 对象的 start() 方法调用先行发生于此线程的每一个动作。
 
-<div align="center"> <img src="../pics//thread-start-rule.png"/> </div><br>
+<div align="center"> <img src="../pics//thread-start-rule.png" width=""/> </div><br>
 
 ### 5. 线程加入规则
 
@@ -1212,7 +1232,7 @@ Thread 对象的 start() 方法先行发生于此线程的每一个动作。
 
 join() 方法返回先行发生于 Thread 对象的结束。
 
-<div align="center"> <img src="../pics//thread-join-rule.png"/> </div><br>
+<div align="center"> <img src="../pics//thread-join-rule.png" width=""/> </div><br>
 
 ### 6. 线程中断规则
 
@@ -1233,6 +1253,10 @@ join() 方法返回先行发生于 Thread 对象的结束。
 如果操作 A 先行发生于操作 B，操作 B 先行发生于操作 C，那么操作 A 先行发生于操作 C。
 
 # 十一、线程安全
+
+## 线程安全定义
+
+一个类在可以被多个线程安全调用时就是线程安全的。
 
 ## 线程安全分类
 
@@ -1275,7 +1299,7 @@ public V put(K key, V value) {
 }
 ```
 
-多线程环境下，应当尽量使对象称为不可变，来满足线程安全。
+多线程环境下，应当尽量使对象成为不可变，来满足线程安全。
 
 ### 2. 绝对线程安全
 
@@ -1399,7 +1423,7 @@ public final int getAndAddInt(Object var1, long var2, int var4) {
 }
 ```
 
-ABA ：如果一个变量 V 初次读取的时候是 A 值，它的值被改成了 B，后来又被改回为 A，那 CAS 操作就会误认为它从来没有被改变过。J.U.C 包提供了一个带有标记的原子引用类“AtomicStampedReference”来解决这个问题，它可以通过控制变量值的版本来保证 CAS 的正确性。大部分情况下 ABA 问题不会影响程序并发的正确性，如果需要解决 ABA 问题，改用传统的互斥同步可能会比原子类更高效。
+ABA ：如果一个变量初次读取的时候是 A 值，它的值被改成了 B，后来又被改回为 A，那 CAS 操作就会误认为它从来没有被改变过。J.U.C 包提供了一个带有标记的原子引用类“AtomicStampedReference”来解决这个问题，它可以通过控制变量值的版本来保证 CAS 的正确性。大部分情况下 ABA 问题不会影响程序并发的正确性，如果需要解决 ABA 问题，改用传统的互斥同步可能会比原子类更高效。
 
 ### 3. 无同步方案
 
@@ -1413,7 +1437,7 @@ ABA ：如果一个变量 V 初次读取的时候是 A 值，它的值被改成�
 
 **（二）栈封闭** 
 
-多个线程方法同一个方法的局部变量时，不会出现线程安全问题，因为局部变量存储在栈中，属于线程私有的。
+多个线程访问同一个方法的局部变量时，不会出现线程安全问题，因为局部变量存储在栈中，属于线程私有的。
 
 ```java
 import java.util.concurrent.ExecutorService;
@@ -1427,14 +1451,16 @@ public class StackClosedExample {
         }
         System.out.println(cnt);
     }
+}
+```
 
-    public static void main(String[] args) {
-        StackClosedExample example = new StackClosedExample();
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        executorService.execute(() -> example.add100());
-        executorService.execute(() -> example.add100());
-        executorService.shutdown();
-    }
+```java
+public static void main(String[] args) {
+    StackClosedExample example = new StackClosedExample();
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    executorService.execute(() -> example.add100());
+    executorService.execute(() -> example.add100());
+    executorService.shutdown();
 }
 ```
 
@@ -1504,9 +1530,9 @@ public class ThreadLocalExample1 {
 
 它所对应的底层结构图为：
 
-<div align="center"> <img src="../pics//3646544a-cb57-451d-9e03-d3c4f5e4434a.png"/> </div><br>
+<div align="center"> <img src="../pics//3646544a-cb57-451d-9e03-d3c4f5e4434a.png" width=""/> </div><br>
 
-每个 Thread 都有一个 TreadLocal.ThreadLocalMap 对象，Thread 类中就定义了 ThreadLocal.ThreadLocalMap 成员。
+每个 Thread 都有一个 ThreadLocal.ThreadLocalMap 对象，Thread 类中就定义了 ThreadLocal.ThreadLocalMap 成员。
 
 ```java
 /* ThreadLocal values pertaining to this thread. This map is maintained
@@ -1549,21 +1575,23 @@ ThreadLocal 从理论上讲并不是用来解决多线程并发问题的，因�
 
 # 十二、锁优化
 
-高效并发是从 JDK 1.5 到 JDK 1.6 的一个重要改进，HotSpot 虚拟机开发团队在这个版本上花费了大量的精力去实现各种锁优化技术，如适应性自旋（Adaptive Spinning）、锁消除（Lock Elimination）、锁粗化（Lock Coarsening）、轻量级锁（Lightweight Locking）和偏向锁（Biased Locking）等。这些技术都是为了在线程之间更高效地共享数据，以及解决竞争问题，从而提高程序的执行效率。
+这里的锁优化主要是指虚拟机对 synchronized 的优化。
 
-## 自旋锁与自适应自旋
+## 自旋锁
 
-前面我们讨论互斥同步的时候，提到了互斥同步对性能最大的影响是阻塞的实现，挂起线程和恢复线程的操作都需要转入内核态完成，这些操作给系统的并发性能带来了很大的压力。同时，虚拟机的开发团队也注意到在许多应用上，共享数据的锁定状态只会持续很短的一段时间，为了这段时间去挂起和恢复线程并不值得。如果物理机器有一个以上的处理器，能让两个或以上的线程同时并行执行，我们就可以让后面请求锁的那个线程 “稍等一下”，但不放弃处理器的执行时间，看看持有锁的线程是否很快就会释放锁。为了让线程等待，我们只需让线程执行一个忙循环（自旋），这项技术就是所谓的自旋锁。
+互斥同步的进入阻塞状态的开销都很大，应该尽量避免。在许多应用中，共享数据的锁定状态只会持续很短的一段时间。自旋锁的思想是让一个线程在请求一个共享数据的锁时执行忙循环（自旋）一段时间，如果在这段时间内能获得锁，就可以避免进入阻塞状态。
 
-自旋等待本身虽然避免了线程切换的开销，但它是要占用处理器时间的，因此，如果锁被占用的时间很短，自旋等待的效果就会非常好。反之，如果锁被占用的时候很长，那么自旋的线程只会白白消耗处理器资源，而不会做任何有用的工作，反而会带来性能上的浪费。因此，自旋等待的时间必须要有一定的限度，如果自旋超过了限定的次数仍然没有成功获得锁，就应当使用传统的方式去挂起线程了。自旋次数的默认值是 10 次，用户可以使用参数 -XX:PreBlockSpin 来更改。
+自选锁虽然能避免进入阻塞状态从而减少开销，但是它需要进行忙循环操作占用 CPU 时间，它只适用于共享数据的锁定状态很短的场景。自旋次数的默认值是 10 次，用户可以使用虚拟机参数 -XX:PreBlockSpin 来更改。
 
-在 JDK 1.6 中引入了自适应的自旋锁。自适应意味着自旋的时间不再固定了，而是由前一次在同一个锁上的自旋时间及锁的拥有者的状态来决定。如果在同一个锁对象上，自旋等待刚刚成功获得过锁，并且持有锁的线程正在运行中，那么虚拟机就会认为这次自旋也很有可能再次成功，进而它将允许自旋等待持续相对更长的时间，比如 100 个循环。另外，如果对于某个锁，自旋很少成功获得过，那在以后要获取这个锁时将可能省略掉自旋过程，以避免浪费处理器资源。有了自适应自旋，随着程序运行和性能监控信息的不断完善，虚拟机对程序锁的状况预测就会越来越准确，虚拟机就会变得越来越“聪明”了。
+在 JDK 1.6 中引入了自适应的自旋锁。自适应意味着自旋的次数不再固定了，而是由前一次在同一个锁上的自旋次数及锁的拥有者的状态来决定。
 
 ## 锁消除
 
-锁消除是指虚拟机即时编译器在运行时，对一些代码上要求同步，但是被检测到不可能存在共享数据竞争的锁进行消除。锁消除的主要判定依据来源于逃逸分析的数据支持，如果判定在一段代码中，堆上的所有数据都不会逃逸出去从而被其他线程访问到，那就可以把他们当做栈上数据对待，认为它们是线程私有的，同步加锁自然就无须进行。
+锁消除是指对于被检测出不可能存在竞争的共享数据的锁进行消除。
 
-也许读者会有疑问，变量是否逃逸，对于虚拟机来说需要使用数据流分析来确定，但是程序自己应该是很清楚的，怎么会在明知道不存在数据争用的情况下要求同步呢？答案是有许多同步措施并不是程序员自己加入的。同步的代码在 Java 程序中的普遍程度也许超过了大部分读者的想象。下面段非常简单的代码仅仅是输出 3 个字符串相加的结果，无论是源码字面上还是程序语义上都没有同步。
+锁消除主要是通过逃逸分析来支持，如果堆上的共享数据不可能逃逸出去被其它线程访问到，那么就可以把它们当成私有数据对待，也就可以将它们上的锁进行消除。
+
+对于一些看起来没有加锁的代码，其实隐式的加了很多锁。例如下面的字符串拼接代码就隐式加了锁：
 
 ```java
 public static String concatString(String s1, String s2, String s3) {
@@ -1571,7 +1599,7 @@ public static String concatString(String s1, String s2, String s3) {
 }
 ```
 
-我们也知道，由于 String 是一个不可变的类，对字符串的连接操作总是通过生成新的 String 对象来进行的，因此 Javac 编译器会对 String 连接做自动优化。在 JDK 1.5 之前，会转化为 StringBuffer 对象的连续 append() 操作，在 JDK 1.5 及以后的版本中，会转化为 StringBuilder 对象的连续 append() 操作，即上面的代码可能会变成下面的样子：
+String 是一个不可变的类，Javac 编译器会对 String 的拼接自动优化。在 JDK 1.5 之前，会转化为 StringBuffer 对象的连续 append() 操作，在 JDK 1.5 及以后的版本中，会转化为 StringBuilder 对象的连续 append() 操作，即上面的代码可能会变成下面的样子：
 
 ```java
 public static String concatString(String s1, String s2, String s3) {
@@ -1582,56 +1610,56 @@ public static String concatString(String s1, String s2, String s3) {
     return sb.toString();
 }
 ```
-每个 StringBuffer.append() 方法中都有一个同步块，锁就是 sb 对象。虚拟机观察变量 sb，很快就会发现它的动态作用域被限制在 concatString() 方法内部。也就是说，sb 的所有引用永远不会 “逃逸” 到 concatString() 方法之外，其他线程无法访问到它。因此，虽然这里有锁，但是可以被安全地消除掉，在即时编译之后，这段代码就会忽略掉所有的同步而直接执行了。
+
+每个 StringBuffer.append() 方法中都有一个同步块，锁就是 sb 对象。虚拟机观察变量 sb，很快就会发现它的动态作用域被限制在 concatString() 方法内部。也就是说，sb 的所有引用永远不会“逃逸”到 concatString() 方法之外，其他线程无法访问到它。因此，虽然这里有锁，但是可以被安全地消除掉。
 
 ## 锁粗化
 
-原则上，我们在编写代码的时候，总是推荐将同步块的作用范围限制得尽量小：只在共享数据的实际作用域中才进行同步。这样是为了使得需要同步的操作数量尽可能变小，如果存在锁竞争，那等待锁的线程也能尽快拿到锁。
+如果一系列的连续操作都对同一个对象反复加锁和解锁，频繁的加锁操作就会导致性能损耗。
 
-大部分情况下，上面的原则都是正确的，但是如果一系列的连续操作都对同一个对象反复加锁和解锁，甚至加锁操作是出现在循环体中，那即使没有线程竞争，频繁地进行互斥同步操作也会导致不必要的性能损耗。
-
-上一节的示例代码中连续的 append() 方法就属于这类情况。如果虚拟机探测到由这样的一串零碎的操作都对同一个对象加锁，将会把加锁同步的范围扩展（粗化）到整个操作序列的外部。对于上一节的示例代码就是扩展到第一个 append() 操作之前直至最后一个 append() 操作之后，这样只需要加锁一次就可以了。
+上一节的示例代码中连续的 append() 方法就属于这类情况。如果虚拟机探测到由这样的一串零碎的操作都对同一个对象加锁，将会把加锁的范围扩展（粗化）到整个操作序列的外部。对于上一节的示例代码就是扩展到第一个 append() 操作之前直至最后一个 append() 操作之后，这样只需要加锁一次就可以了。
 
 ## 轻量级锁
 
-轻量级锁是 JDK 1.6 之中加入的新型锁机制，它名字中的“轻量级”是相对于使用操作系统互斥量来实现的传统锁而言的，因此传统的锁机制就称为“重量级”锁。首先需要强调一点的是，轻量级锁并不是用来代替重要级锁的，它的本意是在没有多线程竞争的前提下，减少传统的重量级锁使用操作系统互斥量产生的性能消耗。
+JDK 1.6 引入了偏向锁和轻量级锁，从而让锁拥有了四个状态：无锁状态（unlocked）、偏向锁状态（biasble）、轻量级锁状态（lightweight locked）和重量级锁状态（inflated）。
 
-要理解轻量级锁，以及后面会讲到的偏向锁的原理和运作过程，必须从 HotSpot 虚拟机的对象（对象头部分）的内存布局开始介绍。HotSpot 虚拟机的对象头（Object Header）分为两部分信息，第一部分用于存储对象自身的运行时数据，如哈希码（HashCode）、GC 分代年龄（Generational GC Age）等，这部分数据是长度在 32 位和 64 位的虚拟机中分别为 32 bit 和 64 bit，官方称它为“Mark Word”，它是实现轻量级锁和偏向锁的关键。另外一部分用于存储指向方法区对象类型数据的指针，如果是数组对象的话，还会有一个额外的部分用于存储数组长度。
+以下是 HotSpot 虚拟机对象头的内存布局，这些数据被称为 mark word。其中 tag bits 对应了五个状态，这些状态在右侧的 state 表格中给出，应该注意的是 state 表格不是存储在对象头中的。除了 marked for gc 状态，其它四个状态已经在前面介绍过了。
 
-简单地介绍了对象的内存布局后，我们把话题返回到轻量级锁的执行过程上。在代码进入同步块的时候，如果此同步对象没有被锁定（锁标志位为 “01” 状态）虚拟机首先将在当前线程的栈帧中建立一个名为锁记录（Lock Record）的空间，用于存储锁对象目前的 Mark Word 的拷贝（官方把这份拷贝加上了一个 Displaced 前缀，即 Displaced Mark Word）。然后，虚拟机将使用 CAS 操作尝试将对象的 Mark Word 更新为指向 Lock Record 的指针。如果这个更新动作成功了，那么这个线程就拥有了该对象的锁，并且对象 Mark Word 的锁标志位（Mark Word 的最后 2bit）将转变为 “00”，即表示此对象处于轻量级锁定状态。
+<div align="center"> <img src="../pics//bb6a49be-00f2-4f27-a0ce-4ed764bc605c.png" width="600"/> </div><br>
 
-<div align="center"> <img src="../pics//8cc671f0-7134-44b1-a7b5-6d24fe55e1c1.jpg"/> </div><br>
+下图左侧是一个线程的虚拟机栈，其中有一部分称为 Lock Record 的区域，这是在轻量级锁运行过程创建的，用于存放锁对象的 Mark Word。而右侧就是一个锁对象，包含了 Mark Word 和其它信息。
 
-如果这个更新操作失败了，虚拟机首先会检查对象的 Mark Word 是否指向当前线程的栈帧，如果是的话只说明当前线程已经拥有了这个对象的锁，那就可以直接进入同步块继续执行，否则说明这个锁对象已经被其他线程线程抢占了。如果有两条以上的线程争用同一个锁，那轻量级锁就不再有效，要膨胀为重量级锁，所标志的状态变为“10”，Mark Word 中存储的就是指向重量级锁（互斥量）的指针，后面等待锁的线程也要进入阻塞状态。
+<div align="center"> <img src="../pics//051e436c-0e46-4c59-8f67-52d89d656182.png" width="500"/> </div><br>
 
-上面描述的是轻量级锁的加锁过程，它的解锁过程也是通过 CAS 操作来进行的，如果对象的 Mark Word 仍然指向着线程的锁记录，那就用 CAS 操作把对象当前的 Mark Word 和线程中复制的 Displaced Mark Word 替换回来，如果替换成功，整个同步过程就完成了。如果替换失败，说明有其他线程尝试过获取该锁，那就要释放锁的同时，唤醒被挂起的线程。
+轻量级锁是相对于传统的重量级锁而言，它使用 CAS 操作来避免重量级锁使用互斥量的开销。对于绝大部分的锁，在整个同步周期内都是不存在竞争的，因此也就不需要都使用互斥量进行同步，可以先采用 CAS 操作进行同步，如果 CAS 失败了再改用互斥量进行同步。
 
-轻量级锁能提升程序同步性能的依据是“对于绝大部分的锁，在整个同步周期内都是不存在竞争的”，这是一个经验数据。如果没有竞争，轻量级锁使用 CAS 操作避免了使用互斥量的开销，但如果存在锁竞争，除了互斥量的开销外，还额外发生了 CAS 操作，因此在有竞争的情况下，轻量级锁会比传统的重量级锁更慢。
+当尝试获取一个锁对象时，如果锁对象标记为 0 01，说明锁对象的锁未锁定（unlocked）状态。此时虚拟机在当前线程栈中创建 Lock Record，然后使用 CAS 操作将对象的 Mark Word 更新为 Lock Record 指针。如果 CAS 操作成功了，那么线程就获取了该对象上的锁，并且对象的 Mark Word 的锁标记变为 00，表示该对象处于轻量级锁状态。
+
+<div align="center"> <img src="../pics//baaa681f-7c52-4198-a5ae-303b9386cf47.png" width="500"/> </div><br>
+
+如果 CAS 操作失败了，虚拟机首先会检查对象的 Mark Word 是否指向当前线程的虚拟机栈，如果是的话说明当前线程已经拥有了这个锁对象，那就可以直接进入同步块继续执行，否则说明这个锁对象已经被其他线程线程抢占了。如果有两条以上的线程争用同一个锁，那轻量级锁就不再有效，要膨胀为重量级锁。
 
 ## 偏向锁
 
-偏向锁也是 JDK 1.6 中引入的一项锁优化，它的目的是消除数据在无竞争情况下的同步原语，进一步提高程序的运行性能。如果说轻量级锁是在无竞争的情况下使用 CAS 操作去消除同步使用的互斥量，那偏向锁就是在无竞争的情况下把整个同步都消除掉，连 CAS 操作都不做了。
+偏向锁的思想是偏向于让第一个获取锁对象的线程，这个线程在之后获取该锁就不再需要进行同步操作，甚至连 CAS 操作也不再需要。
 
-偏向锁的“偏”，就是偏心的“偏”、偏袒的“偏”，它的意思是这个锁会偏向于第一个获得它的线程，如果在接下来的执行过程中，该锁没有被其他的线程获取，则持有偏向锁的线程将永远不需要再进行同步。
+可以使用 -XX:+UseBiasedLocking=true 开启偏向锁，不过在 JDK 1.6 中它是默认开启的。
 
-假设当前虚拟机启用了偏向锁（启用参数 -XX:+UseBiasedLocking，这是 JDK 1.6 的默认值），那么，当锁对象第一次被线程获取的时候，虚拟机将会把对象头中的标志位设为“01”，即偏向模式。同时使用 CAS 操作把获取到这个锁的线程 ID 记录在对象的 Mark Word 之中，如果 CAS 操作成功，持有偏向锁的线程以后每次进入这个锁相关的同步块时，虚拟机都可以不再进行如何同步操作（例如 Locking、Unlocking 及对 Mark Word 的 Update 等）。
+当锁对象第一次被线程获得的时候，进入偏向状态，标记为 1 01。同时使用 CAS 操作将线程 ID 记录到 Mark Word 中，如果 CAS 操作成功，这个线程以后每次进入这个锁相关的同步块就不需要再进行任何同步操作。
 
-当有另外一个线程去尝试获取这个锁时，偏向模式就宣告结束。根据锁对象目前是否处于被锁定的状态，撤销偏向（Revoke Bias）后恢复到未锁定（标志位为“01”）或轻量级锁定（标志位为“00”）的状态，后续的同步操作就如上面介绍的轻量级锁那样执行。偏向锁、轻量级锁的状态转换及对象 Mark Word 的关系如图 13-5 所示。
+当有另外一个线程去尝试获取这个锁对象时，偏向状态就宣告结束，此时撤销偏向（Revoke Bias）后恢复到未锁定状态或者轻量级锁状态。
 
-<div align="center"> <img src="../pics//390c913b-5f31-444f-bbdb-2b88b688e7ce.jpg"/> </div><br>
-
-偏向锁可以提高带有同步但无竞争的程序性能。它同样是一个带有效益权衡（Trade Off）性质的优化，也就是说，它并不一定总是对程序运行有利，如果程序中大多数的锁总是被多个不同的线程访问，那偏向模式就是多余的。在具体问题具体分析的前提下，有时候使用参数 -XX:-UseBiasedLocking 来禁止偏向锁优化反而可以提升性能。
-
+<div align="center"> <img src="../pics//390c913b-5f31-444f-bbdb-2b88b688e7ce.jpg" width="600"/> </div><br>
 
 # 十三、多线程开发良好的实践
 
 - 给线程起个有意义的名字，这样可以方便找 Bug。
 
-- 缩小同步范围，例如 对于 synchronized，应该尽量使用同步块而不是同步方法。
+- 缩小同步范围，例如对于 synchronized，应该尽量使用同步块而不是同步方法。
 
-- 多用同步类少用 wait 和 notify。首先，CountDownLatch, Semaphore, CyclicBarrier 和 Exchanger 这些同步类简化了编码操作，而用 wait 和 notify 很难实现对复杂控制流的控制。其次，这些类是由最好的企业编写和维护在后续的 JDK 中它们还会不断优化和完善，使用这些更高等级的同步工具你的程序可以不费吹灰之力获得优化。
+- 多用同步类少用 wait() 和 notify()。首先，CountDownLatch, Semaphore, CyclicBarrier 和 Exchanger 这些同步类简化了编码操作，而用 wait() 和 notify() 很难实现对复杂控制流的控制。其次，这些类是由最好的企业编写和维护，在后续的 JDK 中它们还会不断优化和完善，使用这些更高等级的同步工具你的程序可以不费吹灰之力获得优化。
 
-- 多用并发集合少用同步集合。并发集合比同步集合的可扩展性更好，例如应该使用 ConcurrentHashMap 而不是 Hashttable。
+- 多用并发集合少用同步集合。并发集合比同步集合的可扩展性更好，例如应该使用 ConcurrentHashMap 而不是 Hashtable。
 
 - 使用本地变量和不可变类来保证线程安全。
 
@@ -1655,3 +1683,4 @@ public static String concatString(String s1, String s2, String s3) {
 - [Concurrent](https://sites.google.com/site/webdevelopart/21-compile/06-java/javase/concurrent?tmpl=%2Fsystem%2Fapp%2Ftemplates%2Fprint%2F&showPrintDialog=1)
 - [JAVA FORK JOIN EXAMPLE](http://www.javacreed.com/java-fork-join-example/ "Java Fork Join Example")
 - [聊聊并发（八）——Fork/Join 框架介绍](http://ifeve.com/talk-concurrency-forkjoin/)
+- [Eliminating SynchronizationRelated Atomic Operations with Biased Locking and Bulk Rebiasing](http://www.oracle.com/technetwork/java/javase/tech/biasedlocking-oopsla2006-preso-150106.pdf)
