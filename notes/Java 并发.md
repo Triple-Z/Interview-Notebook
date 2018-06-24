@@ -95,7 +95,7 @@
 
 睡眠和挂起是用来描述行为，而阻塞和等待用来描述状态。
 
-阻塞和等待的区别在于，阻塞是被动的，它是在等待获取一个排它锁；而等待是主动的，通过调用 Thread.sleep() 和 Object.wait() 等方法进入。
+阻塞和等待的区别在于，阻塞是被动的，它是在等待获取一个排它锁。而等待是主动的，通过调用 Thread.sleep() 和 Object.wait() 等方法进入。
 
 | 进入方法 | 退出方法 |
 | --- | --- |
@@ -165,7 +165,7 @@ public static void main(String[] args) throws ExecutionException, InterruptedExc
 
 ## 继承 Thread 类
 
-同样也是需要实现 run() 方法，并且最后也是调用 start() 方法来启动线程。
+同样也是需要实现 run() 方法，因为 Thread 类也实现了 Runable 接口。
 
 ```java
 public class MyThread extends Thread {
@@ -193,7 +193,7 @@ public static void main(String[] args) {
 
 ## Executor
 
-Executor 管理多个异步任务的执行，而无需程序员显式地管理线程的生命周期。
+Executor 管理多个异步任务的执行，而无需程序员显式地管理线程的生命周期。这里的异步是指多个任务的执行互不干扰，不需要进行同步操作。
 
 主要有三种 Executor：
 
@@ -383,7 +383,7 @@ Java 提供了两种锁机制来控制多个线程对共享资源的互斥访问
 **1. 同步一个代码块** 
 
 ```java
-public void func () {
+public void func() {
     synchronized (this) {
         // ...
     }
@@ -392,7 +392,7 @@ public void func () {
 
 它只作用于同一个对象，如果调用两个对象上的同步代码块，就不会进行同步。
 
-对于以下代码，使用 ExecutorService 执行了两个线程（这两个线程使用 Lambda 创建），由于调用的是同一个对象的同步代码块，因此这两个线程会进行同步，当一个线程进入同步语句块时，另一个线程就必须等待。
+对于以下代码，使用 ExecutorService 执行了两个线程，由于调用的是同一个对象的同步代码块，因此这两个线程会进行同步，当一个线程进入同步语句块时，另一个线程就必须等待。
 
 ```java
 public class SynchronizedExample {
@@ -445,7 +445,7 @@ public synchronized void func () {
 }
 ```
 
-它和同步代码块一样，只作用于同一个对象。
+它和同步代码块一样，作用于同一个对象。
 
 **3. 同步一个类** 
 
@@ -457,7 +457,7 @@ public void func() {
 }
 ```
 
-作用于整个类，也就是说两个线程调用同一个类的不同对象上的这种同步语句，也需要进行同步。
+作用于整个类，也就是说两个线程调用同一个类的不同对象上的这种同步语句，也会进行同步。
 
 ```java
 public class SynchronizedExample {
@@ -533,15 +533,17 @@ ReentrantLock 是 java.util.concurrent（J.U.C）包中的锁，相比于 synchr
 
 **1. 等待可中断** 
 
-当持有锁的线程长期不释放锁的时候，正在等待的线程可以选择放弃等待，改为处理其他事情，可中断特性对处理执行时间非常长的同步块很有帮助。
+当持有锁的线程长期不释放锁的时候，正在等待的线程可以选择放弃等待，改为处理其他事情。
 
 **2. 可实现公平锁** 
 
-公平锁是指多个线程在等待同一个锁时，必须按照申请锁的时间顺序来依次获得锁；而非公平锁则不保证这一点，在锁被释放时，任何一个等待锁的线程都有机会获得锁。synchronized 中的锁是非公平的，ReentrantLock 默认情况下也是非公平的，但可以通过带布尔值的构造函数要求使用公平锁。
+公平锁是指多个线程在等待同一个锁时，必须按照申请锁的时间顺序来依次获得锁。
+
+synchronized 中的锁是非公平的，ReentrantLock 默认情况下也是非公平的，但可以通过带布尔值的构造函数要求使用公平锁。
 
 **3. 锁绑定多个条件** 
 
-一个 ReentrantLock 对象可以同时绑定多个 Condition 对象，而在 synchronized 中，锁对象的 wait() 和 notify() 或 notifyAll() 方法可以实现一个隐含的条件，如果要和多于一个的条件关联的时候，就不得不额外地添加一个锁，而 ReentrantLock 则无须这样做，只需要多次调用 newCondition() 方法即可。
+一个 ReentrantLock 对象可以同时绑定多个 Condition 对象。
 
 ## synchronized 和 ReentrantLock 比较
 
@@ -551,7 +553,7 @@ synchronized 是 JVM 实现的，而 ReentrantLock 是 JDK 实现的。
 
 **2. 性能** 
 
-从性能上来看，新版本 Java 对 synchronized 进行了很多优化，例如自旋锁等。目前来看它和 ReentrantLock 的性能基本持平了，因此性能因素不再是选择 ReentrantLock 的理由。synchronized 有更大的性能优化空间，应该优先考虑 synchronized。
+新版本 Java 对 synchronized 进行了很多优化，例如自旋锁等。目前来看它和 ReentrantLock 的性能基本持平了，因此性能因素不再是选择 ReentrantLock 的理由。synchronized 有更大的性能优化空间，应该优先考虑 synchronized。
 
 **3. 功能** 
 
@@ -567,9 +569,9 @@ ReentrantLock 多了一些高级功能。
 
 ## join()
 
-在线程中调用另一个线程的 join() 方法，会将当前线程挂起，而不是忙等待， 直到目标线程结束。
+在线程中调用另一个线程的 join() 方法，会将当前线程挂起，而不是忙等待，直到目标线程结束。
 
-对于以下代码，虽然 b 线程先启动，但是因为在 b 线程中调用了 a 线程的 join() 方法，因此 b 线程会等待 a 线程结束才继续执行，因此最后能够保证 a 线程的输出先与 b 线程的输出。
+对于以下代码，虽然 b 线程先启动，但是因为在 b 线程中调用了 a 线程的 join() 方法，b 线程会等待 a 线程结束才继续执行，因此最后能够保证 a 线程的输出先于 b 线程的输出。
 
 ```java
 public class JoinExample {
@@ -665,8 +667,8 @@ after
 
 **wait() 和 sleep() 的区别** 
 
-1. wait() 是 Object 的方法，而 sleep() 是 Thread 的静态方法；
-2. wait() 会释放锁，sleep() 不会。
+- wait() 是 Object 的方法，而 sleep() 是 Thread 的静态方法；
+- wait() 会释放锁，sleep() 不会。
 
 ## await() signal() signalAll()
 
@@ -841,7 +843,7 @@ public class FutureTask<V> implements RunnableFuture<V>
 public interface RunnableFuture<V> extends Runnable, Future<V>
 ```
 
-当一个计算任务需要执行很长时间，那么就可以用 FutureTask 来封装这个任务，用一个线程去执行该任务，然后其它线程继续执行其它任务。当需要该任务的计算结果时，再通过 FutureTask 的 get() 方法获取。
+FutureTask 可用于异步获取执行结果或取消执行任务的场景。当一个计算任务需要执行很长时间，那么就可以用 FutureTask 来封装这个任务，主线程在完成自己的任务之后再去获取结果。
 
 ```java
 public class FutureTaskExample {
@@ -884,10 +886,10 @@ other task is running...
 
 java.util.concurrent.BlockingQueue 接口有以下阻塞队列的实现：
 
--  **FIFO 队列** ：LinkedBlockingQueue、ArrayListBlockingQueue（固定长度）
+-  **FIFO 队列** ：LinkedBlockingQueue、ArrayBlockingQueue（固定长度）
 -  **优先级队列** ：PriorityBlockingQueue
 
-提供了阻塞的 take() 和 put() 方法：如果队列为空 take() 将阻塞，直到队列中有内容；如果队列为满 put() 将阻塞，指到队列有空闲位置。
+提供了阻塞的 take() 和 put() 方法：如果队列为空 take() 将阻塞，直到队列中有内容；如果队列为满 put() 将阻塞，直到队列有空闲位置。
 
 **使用 BlockingQueue 实现生产者消费者问题** 
 
@@ -1385,7 +1387,9 @@ synchronized 和 ReentrantLock。
 
 互斥同步最主要的问题就是进行线程阻塞和唤醒所带来的性能问题，因此这种同步也称为阻塞同步（Blocking Synchronization）。
 
-从处理问题的方式上说，互斥同步属于一种悲观的并发策略，总是认为只要不去做正确的同步措施（例如加锁），那就肯定会出现问题，无论共享数据是否真的会出现竞争，它都要进行加锁（这里讨论的是概念模型，实际上虚拟机会优化掉很大一部分不必要的加锁）、用户态核心态转换、维护锁计数器和检查是否有被阻塞的线程需要唤醒等操作。随着硬件指令集的发展，我们有了另外一个选择：基于冲突检测的乐观并发策略，通俗地说，就是先进行操作，如果没有其他线程争用共享数据，那操作就成功了；如果共享数据有争用，产生了冲突，那就再采取其他的补偿措施（最常见的补偿措施就是不断地重试，直到成功为止），这种乐观的并发策略的许多实现都不需要把线程挂起，因此这种同步操作称为非阻塞同步（Non-Blocking Synchronization）。
+从处理问题的方式上说，互斥同步属于一种悲观的并发策略，总是认为只要不去做正确的同步措施（例如加锁），那就肯定会出现问题，无论共享数据是否真的会出现竞争，它都要进行加锁（这里讨论的是概念模型，实际上虚拟机会优化掉很大一部分不必要的加锁）、用户态核心态转换、维护锁计数器和检查是否有被阻塞的线程需要唤醒等操作。
+
+随着硬件指令集的发展，我们有了另外一个选择：基于冲突检测的乐观并发策略，通俗地说，就是先进行操作，如果没有其他线程争用共享数据，那操作就成功了；如果共享数据有争用，产生了冲突，那就再采取其他的补偿措施（最常见的补偿措施就是不断地重试，直到成功为止），这种乐观的并发策略的许多实现都不需要把线程挂起，因此这种同步操作称为非阻塞同步（Non-Blocking Synchronization）。
 
 乐观锁需要操作和冲突检测这两个步骤具备原子性，这里就不能再使用互斥同步来保证了，只能靠硬件来完成。硬件支持的原子性操作最典型的是：比较并交换（Compare-and-Swap，CAS）。
 
@@ -1581,7 +1585,7 @@ ThreadLocal 从理论上讲并不是用来解决多线程并发问题的，因�
 
 互斥同步的进入阻塞状态的开销都很大，应该尽量避免。在许多应用中，共享数据的锁定状态只会持续很短的一段时间。自旋锁的思想是让一个线程在请求一个共享数据的锁时执行忙循环（自旋）一段时间，如果在这段时间内能获得锁，就可以避免进入阻塞状态。
 
-自选锁虽然能避免进入阻塞状态从而减少开销，但是它需要进行忙循环操作占用 CPU 时间，它只适用于共享数据的锁定状态很短的场景。自旋次数的默认值是 10 次，用户可以使用虚拟机参数 -XX:PreBlockSpin 来更改。
+自选锁虽然能避免进入阻塞状态从而减少开销，但是它需要进行忙循环操作占用 CPU 时间，它只适用于共享数据的锁定状态很短的场景。
 
 在 JDK 1.6 中引入了自适应的自旋锁。自适应意味着自旋的次数不再固定了，而是由前一次在同一个锁上的自旋次数及锁的拥有者的状态来决定。
 
@@ -1589,7 +1593,7 @@ ThreadLocal 从理论上讲并不是用来解决多线程并发问题的，因�
 
 锁消除是指对于被检测出不可能存在竞争的共享数据的锁进行消除。
 
-锁消除主要是通过逃逸分析来支持，如果堆上的共享数据不可能逃逸出去被其它线程访问到，那么就可以把它们当成私有数据对待，也就可以将它们上的锁进行消除。
+锁消除主要是通过逃逸分析来支持，如果堆上的共享数据不可能逃逸出去被其它线程访问到，那么就可以把它们当成私有数据对待，也就可以将它们的锁进行消除。
 
 对于一些看起来没有加锁的代码，其实隐式的加了很多锁。例如下面的字符串拼接代码就隐式加了锁：
 
@@ -1599,7 +1603,7 @@ public static String concatString(String s1, String s2, String s3) {
 }
 ```
 
-String 是一个不可变的类，Javac 编译器会对 String 的拼接自动优化。在 JDK 1.5 之前，会转化为 StringBuffer 对象的连续 append() 操作，在 JDK 1.5 及以后的版本中，会转化为 StringBuilder 对象的连续 append() 操作，即上面的代码可能会变成下面的样子：
+String 是一个不可变的类，编译器会对 String 的拼接自动优化。在 JDK 1.5 之前，会转化为 StringBuffer 对象的连续 append() 操作：
 
 ```java
 public static String concatString(String s1, String s2, String s3) {
@@ -1611,7 +1615,7 @@ public static String concatString(String s1, String s2, String s3) {
 }
 ```
 
-每个 StringBuffer.append() 方法中都有一个同步块，锁就是 sb 对象。虚拟机观察变量 sb，很快就会发现它的动态作用域被限制在 concatString() 方法内部。也就是说，sb 的所有引用永远不会“逃逸”到 concatString() 方法之外，其他线程无法访问到它。因此，虽然这里有锁，但是可以被安全地消除掉。
+每个 append() 方法中都有一个同步块。虚拟机观察变量 sb，很快就会发现它的动态作用域被限制在 concatString() 方法内部。也就是说，sb 的所有引用永远不会“逃逸”到 concatString() 方法之外，其他线程无法访问到它，因此可以进行消除。
 
 ## 锁粗化
 
@@ -1642,8 +1646,6 @@ JDK 1.6 引入了偏向锁和轻量级锁，从而让锁拥有了四个状态：
 ## 偏向锁
 
 偏向锁的思想是偏向于让第一个获取锁对象的线程，这个线程在之后获取该锁就不再需要进行同步操作，甚至连 CAS 操作也不再需要。
-
-可以使用 -XX:+UseBiasedLocking=true 开启偏向锁，不过在 JDK 1.6 中它是默认开启的。
 
 当锁对象第一次被线程获得的时候，进入偏向状态，标记为 1 01。同时使用 CAS 操作将线程 ID 记录到 Mark Word 中，如果 CAS 操作成功，这个线程以后每次进入这个锁相关的同步块就不需要再进行任何同步操作。
 
